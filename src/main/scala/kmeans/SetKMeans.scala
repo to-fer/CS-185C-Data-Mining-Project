@@ -47,11 +47,11 @@ object SetKMeans {
       case (centroid, index) => (similarity(dataPoint, centroid), index)
     }
     val closestCentroidIndex =
-      if (similarities.forall { case (distance, centroidIndex) => distance == 0.0 })
+      if (similarities.forall { case (similarity, centroidIndex) => similarity == 0.0 })
         // Ignore data points that have nothing in common with any centroid.
         None
       else
-        Some((similarities.minBy { case (dist, centroidIndex) => dist })._2)
+        Some((similarities.maxBy { case (dist, centroidIndex) => dist })._2)
     closestCentroidIndex
   }
 
@@ -129,8 +129,8 @@ object SetKMeans {
   private def average(cluster: RDD[Set[String]], averageThreshold: Double = 0.50): Set[String] = {
     val clusterSetElements = cluster flatMap (set => set)
     val clusterSetElementCounts = (clusterSetElements.map((_, 1))
-                                                     .groupBy { case (element, _) => element })
-                                                     .map { case (element, counts) => (element, counts.length) }
+      .groupBy { case (element, _) => element })
+      .map { case (element, counts) => (element, counts.length) }
     val mostCommonElementCount = clusterSetElementCounts.fold(clusterSetElementCounts.first)(
       (mostCommonSong, song) => if (song._2 > mostCommonSong._2) song else mostCommonSong
     )._2
