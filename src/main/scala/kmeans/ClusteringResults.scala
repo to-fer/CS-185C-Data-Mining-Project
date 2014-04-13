@@ -34,7 +34,7 @@ class ClusteringResults(val clusters: Map[Int, RDD[Set[String]]],
       centroidString += s"$i: $centroidElementString\n"
     }
 
-    headerString + "\n" + summaryString + "\n" + unclusteredString + "\n" + centroidString
+    headerString + "\n" + summaryString + unclusteredString + "\n" + centroidString
   }
 
 }
