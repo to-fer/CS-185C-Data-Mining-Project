@@ -26,7 +26,7 @@ class ClusteringResults(val clusters: Map[Int, RDD[Set[String]]],
     }).mkString("\n") + "\n"
 
     val unclusteredDataPoints = dataCount - clusterSizesAndPercentages.map(_._1).sum
-    val unclusteredString = s"Unclustered: $unclusteredDataPoints"
+    val unclusteredString = s"Unclustered: $unclusteredDataPoints\n"
 
     var centroidString = "Centroids: \n"
     for (i <- 0 until centroids.length) {
