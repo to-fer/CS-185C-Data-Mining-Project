@@ -10,6 +10,7 @@ class ClusteringResults(val clusters: Map[Int, RDD[Set[String]]],
   override def toString = {
     val headerString = s"""
       |CLUSTERING RESULTS
+      |Dataset Size = $dataCount
       |K = $k
       |Iterations = $iterations
     """.stripMargin
