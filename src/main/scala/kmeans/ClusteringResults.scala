@@ -25,13 +25,16 @@ class ClusteringResults(val clusters: Map[Int, RDD[Set[String]]],
       case (clusterIndex, (count, percentage)) => s"$clusterIndex: $count($percentage%)"
     }).mkString("\n") + "\n"
 
+    val unclusteredDataPoints = dataCount - clusterSizesAndPercentages.map(_._1).sum
+    val unclusteredString = s"Unclustered: $unclusteredDataPoints"
+
     var centroidString = "Centroids: \n"
     for (i <- 0 until centroids.length) {
       val centroidElementString = "{" + centroids(i).mkString(", ") + "}"
       centroidString += s"$i: $centroidElementString\n"
     }
 
-    headerString + "\n" + summaryString + "\n" + centroidString
+    headerString + "\n" + summaryString + "\n" + unclusteredString + "\n" + centroidString
   }
 
 }
