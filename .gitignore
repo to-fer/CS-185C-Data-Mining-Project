@@ -1,0 +1,9 @@
+.*
+!.gitignore
+
+# SBT project directories
+project/
+target/
+
+# File that clustering results are written to.
+clustering-results
