@@ -48,7 +48,7 @@ object SetKMeans {
     }
     val closestCentroidIndex =
       if (similarities.forall { case (distance, centroidIndex) => distance == 0.0 })
-        // Ignore files that have nothing in common with any centroid.
+        // Ignore data points that have nothing in common with any centroid.
         None
       else
         Some((similarities.minBy { case (dist, centroidIndex) => dist })._2)
