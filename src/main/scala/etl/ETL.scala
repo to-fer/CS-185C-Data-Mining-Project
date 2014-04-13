@@ -12,11 +12,10 @@ object ETL extends App {
 
     // For transformation from song ID to song name. File available at
     // http://labrosa.ee.columbia.edu/millionsong/pages/getting-dataset at "1." under "Additional Files".
-    val songNameFile = context.textFile("unique_tracks.txt")
-    val songNameFileSeparator = "<SEP>"
-    val songIdToSongName = songNameFile.map(line => {
-      line.split(songNameFileSeparator)
-    }).collect {
+    val translationDataset = context.textFile("unique_tracks.txt")
+    val separator = "<SEP>"
+    val translationDatasetSplitLines = translationDataset.map(_.split(separator))
+    val songIdToSongName = translationDatasetSplitLines.collect {
       case splitLine: Array[String] if splitLine.length == 4 => {
         val songId = splitLine(1)
         val songName = splitLine(3)
@@ -44,7 +43,7 @@ object ETL extends App {
     })
 
     // Write transformed data to a file.
-    val fileContents = userSongSets.map(_.mkString(songNameFileSeparator))
+    val fileContents = userSongSets.map(_.mkString(separator))
     val transformedDataFile = "taste-profile-subset-transformed"
     fileContents.saveAsTextFile(transformedDataFile)
 
