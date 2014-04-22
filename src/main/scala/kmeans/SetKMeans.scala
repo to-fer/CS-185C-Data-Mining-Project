@@ -2,6 +2,7 @@ package kmeans
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkContext
+import SparkContext._
 
 object SetKMeans {
   // TODO add convergence detection
@@ -126,10 +127,9 @@ object SetKMeans {
    */
   private def average(cluster: RDD[Set[String]], averageThreshold: Double = 0.30): Set[String] = {
     val clusterSetElements = cluster flatMap (set => set)
-    // TODO fix weird map-reduce?
-    val clusterSetElementCounts = (clusterSetElements.map((_, 1))
-      .groupBy { case (element, _) => element })
-      .map { case (element, counts) => (element, counts.length) }
+
+    val clusterSetElementCounts = clusterSetElements.map((_, 1))
+                                                    .reduceByKey(_ + _)
     val mostCommonElementCount = clusterSetElementCounts.fold(clusterSetElementCounts.first)(
       (mostCommonSong, song) => if (song._2 > mostCommonSong._2) song else mostCommonSong
     )._2
