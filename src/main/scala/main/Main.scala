@@ -1,6 +1,7 @@
 package main
 
 import org.apache.spark.SparkContext
+
 import kmeans.SetKMeans
 import java.nio.file.{Paths, Files}
 
@@ -15,10 +16,10 @@ object Main extends App {
   // Cached because K-Means is an iterative algorithm
   val trainingData = context.textFile(transformedDataFile).map(_.split(songSeparator).toSet).cache()
 
-  val (kMeansResults, _) = SetKMeans.run(
+  val (kMeansResults, _) = SetKMeans.run (
     data = trainingData,
-    k = 4,
-    iterations = 10
+    k = 10,
+    iterations = 50
   )
 
   val resultsFile = Paths.get("clustering-results")
