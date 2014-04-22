@@ -2,7 +2,6 @@ package kmeans
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkContext
-import scala.util.Random
 
 object SetKMeans {
   // TODO add convergence detection
@@ -125,9 +124,9 @@ object SetKMeans {
    *                         use as the count requirement.
    * @return the set-average of the cluster
    */
-  // TODO replace this old implementation with one that actually works well.
-  private def average(cluster: RDD[Set[String]], averageThreshold: Double = 0.50): Set[String] = {
+  private def average(cluster: RDD[Set[String]], averageThreshold: Double = 0.30): Set[String] = {
     val clusterSetElements = cluster flatMap (set => set)
+    // TODO fix weird map-reduce?
     val clusterSetElementCounts = (clusterSetElements.map((_, 1))
       .groupBy { case (element, _) => element })
       .map { case (element, counts) => (element, counts.length) }
