@@ -23,11 +23,12 @@ object ETL extends App {
       }
     }.toArray.toMap
 
+
     /* Transform! */
     // Case class, just for readability's sake
-    case class Datum(userId: String, songId: String, playCount: Int)
+    case class Datum(userId: String, songName: String, playCount: Int)
     val triplets = dataset map (line => {
-      val splitLine = line split ","
+      val splitLine = line.split(",")
       val songId = splitLine(1)
       val songName =
         if (songIdToSongName.contains(songId))
@@ -36,11 +37,11 @@ object ETL extends App {
           songId
       new Datum(splitLine(0), songName, splitLine(2).toInt)
     })
-
-    val userSongArrayBuffers = triplets groupBy (_.userId)
-    val userSongSets = (userSongArrayBuffers map {
-      case (userId, userListeningHabits) => userListeningHabits.map(_.songId).toSet
-    })
+    val userSongGrouping = triplets groupBy (_.userId)
+    val userSongSets = userSongGrouping map {
+      case (userId, userListeningHabits) =>
+        userListeningHabits.map(_.songName).toSet
+    }
 
     // Write transformed data to a file.
     val fileContents = userSongSets.map(_.mkString(separator))
