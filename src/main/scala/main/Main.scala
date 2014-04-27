@@ -7,7 +7,7 @@ import java.nio.file.{Paths, Files}
 
 object Main extends App {
   // Spark initialization
-  val sparkHome = "/home/dash/prog/lang/scala/lib/spark-0.9.0-incubating"
+  val sparkHome = "/home/dash/prog/lang/scala/spark"
   val master = "local[4]"
   implicit val context = new SparkContext(master, "Song Set K-Means", sparkHome)
 
@@ -17,9 +17,8 @@ object Main extends App {
   val trainingData = context.textFile(transformedDataFile).map(_.split(songSeparator).toSet).cache()
 
   val (kMeansResults, _) = SetKMeans.run (
-    data = trainingData,
-    k = 10,
-    iterations = 50
+    trainingData = trainingData,
+    k = 10
   )
 
   val resultsFile = Paths.get("clustering-results")

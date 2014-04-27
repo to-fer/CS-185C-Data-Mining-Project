@@ -2,32 +2,43 @@ package kmeans
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkContext
+import SparkContext._
 
 object SetKMeans {
   // TODO add convergence detection
   // WARNING: SetKMeansModel is returned, but is a class that has yet to be implemented. Do not use.
-  def run(data: RDD[Set[String]], k: Int = 10, iterations: Int = 10)
+  def run(trainingData: RDD[Set[String]], k: Int = 10)
          (implicit sparkContext: SparkContext): (ClusteringResults, SetKMeansModel) = {
-    var centroids = data.takeSample(withReplacement = false, k, seed = System.currentTimeMillis.toInt)
+    var centroids = 
+      trainingData.takeSample(false, k, System.currentTimeMillis.toInt)
     var clusters = Map.empty[Int, RDD[Set[String]]]
 
+    val convergenceSim = k
     var currentIteration = 0
-    while (currentIteration < iterations) {
+    var sumOfSim = 0.0
+    do {
       currentIteration += 1
 
-      clusters = clusterData(data, centroids)
-      centroids = findNewCentroids(clusters, k)
-    }
+      clusters = clusterData(trainingData, centroids)
+      val newCentroids = findNewCentroids(clusters, k)
+
+      sumOfSim = 0.0
+      for (i <- 0 until k) {
+        val distance = similarity(centroids(i), newCentroids(i))
+        sumOfSim += distance
+      }
+      centroids = newCentroids
+    } while(convergenceSim > sumOfSim)
 
     val results = new ClusteringResults(k = k,
                                         clusters = clusters,
                                         centroids = centroids,
-                                        iterations = iterations,
-                                        dataCount = data.count().toInt)
+                                        iterations = currentIteration,
+                                        dataCount = trainingData.count().toInt)
     (results, new SetKMeansModel)
   }
 
-  private def similarity(setA: Set[String], setB: Set[String]): Double = {
+  private def similarity(setA: Set[String], setB: Set[String]) = {
     val numOfCommonElements = setA.intersect(setB).size
     val numOfTotalElements = setA.union(setB).size
     numOfCommonElements/numOfTotalElements.toDouble
@@ -41,16 +52,21 @@ object SetKMeans {
    * @param centroids the cluster centroids
    * @return the centroid that dataPoint is closest to.
    */
-  private def closestCentroid(dataPoint: Set[String], centroids: Seq[Set[String]]): Option[Int] = {
+  private def closestCentroid
+  (dataPoint: Set[String], centroids: Seq[Set[String]]): Option[Int] = {
     val similarities = centroids.zipWithIndex map {
       case (centroid, index) => (similarity(dataPoint, centroid), index)
     }
     val closestCentroidIndex =
-      if (similarities.forall { case (similarity, centroidIndex) => similarity == 0.0 })
-        // Ignore data points that have nothing in common with any centroid.
+      if (similarities.forall {
+        case (similarity, centroidIndex) => similarity == 0.0
+      })
+      // Ignore data points that have nothing in common with any centroid.
         None
       else
-        Some((similarities.maxBy { case (dist, centroidIndex) => dist })._2)
+        Some((similarities.maxBy {
+          case (similarity, centroidIndex) => similarity
+        })._2)
     closestCentroidIndex
   }
 
@@ -64,31 +80,33 @@ object SetKMeans {
   // TODO always makes 2 large clusters and 2 small ones when k = 4. Bug, or consequence of a small K?
   private def clusterData(data: RDD[Set[String]], centroids: Seq[Set[String]])
                          (implicit sparkContext: SparkContext): Map[Int, RDD[Set[String]]] = {
-    val centroidIndexToSet = data.keyBy(closestCentroid(_, centroids)).filter {
-      case (indexOption, centroid) => indexOption.isDefined
+    val centroidIndexToDataPoint = data.keyBy(
+      closestCentroid(_, centroids)
+    ).filter {
+      case (indexOption, dataPoint) => indexOption.isDefined
     }.map {
-      case (indexOption, centroid) => (indexOption.get, centroid)
+      case (indexOption, dataPoint) => (indexOption.get, dataPoint)
     }
 
-    val centroidToSetGroupedByCentroid = centroidIndexToSet groupBy {
+    val groupedByClusterIndex = centroidIndexToDataPoint groupBy {
       case (centroidIndex, _) => centroidIndex
     }
-    var clusters = ((centroidToSetGroupedByCentroid map {
-      case (centroidNumber: Int, centroidNumberToS) => {
-        val clusterSets = centroidNumberToS map {
+    var clusters = ((groupedByClusterIndex map {
+      case (clusterIndex: Int, clusterIndexToS) => {
+        val clusterSets = clusterIndexToS map {
           case (_, set) => set
         }
-        (centroidNumber, clusterSets)
+        (clusterIndex -> clusterSets)
       }
     }).toArray map {
-      // Workaround for a bug in Spark that doesn't allow you to make RDDs within RDDs (they become null
-      // for some reason). Here, we're making them in an Array.
-      case (clusterIndex, set) => (clusterIndex -> sparkContext.makeRDD(set))
+      case (clusterIndex, clusterSets) =>
+        (clusterIndex -> sparkContext.makeRDD(clusterSets))
     }).toMap
 
     for (i <- 0 until centroids.length)
       if (!clusters.contains(i))
-        clusters = clusters + (i -> sparkContext.makeRDD(List.empty[Set[String]]))
+        clusters =
+          clusters + (i -> sparkContext.makeRDD(List.empty[Set[String]]))
     clusters
   }
 
@@ -98,9 +116,9 @@ object SetKMeans {
    * @param clusters the clusters to find the new centroids of
    * @return the new centroids of the clusters
    */
-  private def findNewCentroids(clusters: Map[Int, RDD[Set[String]]], k: Int): Array[Set[String]] = {
+  private def findNewCentroids(clusters: Map[Int, RDD[Set[String]]],
+                               k: Int): Array[Set[String]] = {
     val newCentroids = new Array[Set[String]](k)
-    // Implemented with foreach in this manner to make sure each centroid is assigned to the correct index
     clusters foreach { case (clusterNumber, cluster) => {
       val newCentroid =
       if (cluster.count != 0 )
@@ -124,18 +142,21 @@ object SetKMeans {
    *                         use as the count requirement.
    * @return the set-average of the cluster
    */
-  private def average(cluster: RDD[Set[String]], averageThreshold: Double = 0.30): Set[String] = {
+  private def average(cluster: RDD[Set[String]],
+                      averageThreshold: Double = 0.30): Set[String] = {
     val clusterSetElements = cluster flatMap (set => set)
-    // TODO fix weird map-reduce?
-    val clusterSetElementCounts = (clusterSetElements.map((_, 1))
-      .groupBy { case (element, _) => element })
-      .map { case (element, counts) => (element, counts.length) }
-    val mostCommonElementCount = clusterSetElementCounts.fold(clusterSetElementCounts.first)(
-      (mostCommonSong, song) => if (song._2 > mostCommonSong._2) song else mostCommonSong
+
+    val clusterSetElementCounts = clusterSetElements.map((_, 1))
+                                                    .reduceByKey(_ + _)
+    val mostCommonElementCount = clusterSetElementCounts
+                                   .fold(clusterSetElementCounts.first)(
+      (mostCommonSong, song) =>
+        if (song._2 > mostCommonSong._2) song else mostCommonSong
     )._2
     val countRequirement = mostCommonElementCount * averageThreshold
     val averageElements = clusterSetElementCounts.collect {
-      case (song, occurrenceCount) if (occurrenceCount >= countRequirement) => song
+      case (song, occurrenceCount)
+        if (occurrenceCount >= countRequirement) => song
     }
     averageElements.toArray.toSet
   }
