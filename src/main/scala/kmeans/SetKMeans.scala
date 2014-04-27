@@ -148,10 +148,8 @@ object SetKMeans {
 
     val clusterSetElementCounts = clusterSetElements.map((_, 1))
                                                     .reduceByKey(_ + _)
-    val mostCommonElementCount = clusterSetElementCounts
-                                   .fold(clusterSetElementCounts.first)(
-      (mostCommonSong, song) =>
-        if (song._2 > mostCommonSong._2) song else mostCommonSong
+    val mostCommonElementCount = clusterSetElementCounts.fold(clusterSetElementCounts.first)(
+      (mostCommonSong, song) => if (song._2 > mostCommonSong._2) song else mostCommonSong
     )._2
     val countRequirement = mostCommonElementCount * averageThreshold
     val averageElements = clusterSetElementCounts.collect {
