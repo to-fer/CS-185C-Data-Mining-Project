@@ -11,7 +11,7 @@ object Main extends App {
     // Spark initialization
     val conf = new SparkConf()
                .setSparkHome(args(0))
-               .setMaster(args(0))
+               .setMaster(args(1))
                .setAppName("Song Set K-Means")
                .set("spark.executor.memory", "1g")
                .set("spark.cores.max", "2")
