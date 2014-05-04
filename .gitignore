@@ -11,3 +11,5 @@ target/
 *.eml
 *.userlibraries
 *transformed*
+
+*META-INF*
