@@ -1,4 +1,3 @@
-import AssemblyKeys._
 import sbt._
 import Keys._
 import Package.ManifestAttributes
@@ -24,6 +23,3 @@ libraryDependencies ++= Seq(
     exclude("com.esotericsoftware.minlog", "minlog"),
   ("org.apache.hadoop" % "hadoop-client" % "1.0.3" % "provided")
 )
-
-assemblySettings
-
