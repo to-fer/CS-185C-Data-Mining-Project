@@ -13,7 +13,7 @@ object Main extends App {
                .setSparkHome(args(0))
                .setMaster(args(1))
                .setAppName("Song Set K-Means")
-               .set("spark.executor.memory", "1g")
+               .set("spark.executor.memory", "5g")
                .set("spark.cores.max", "4")
 
     implicit val context = new SparkContext(conf)
