@@ -2,7 +2,7 @@
 !.gitignore
 
 # SBT project directories
-project/
+project/target/
 target/
 
 # File that clustering results are written to.
