@@ -1,6 +1,6 @@
 package main
 
-import org.apache.spark.SparkContext
+import org.apache.spark.{SparkConf, SparkContext}
 
 import kmeans.SetKMeans
 import java.nio.file.{Paths, Files}
@@ -9,9 +9,14 @@ object Main extends App {
 
   if (args.length == 3) {
     // Spark initialization
-    val sparkHome = args(0)
-    val master = args(1)
-    implicit val context = new SparkContext(master, "Song Set K-Means", sparkHome)
+    val conf = new SparkConf()
+               .setSparkHome(args(0))
+               .setMaster(args(0))
+               .setAppName("Song Set K-Means")
+               .set("spark.executor.memory", "1g")
+               .set("spark.cores.max", "2")
+
+    implicit val context = new SparkContext(conf)
 
     val transformedDataFile = args(2)
     val songSeparator = "<SEP>"
