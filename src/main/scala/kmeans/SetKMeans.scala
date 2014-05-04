@@ -7,7 +7,7 @@ import SparkContext._
 object SetKMeans {
   // TODO add convergence detection
   // WARNING: SetKMeansModel is returned, but is a class that has yet to be implemented. Do not use.
-  def run(trainingData: RDD[Set[String]], k: Int = 10)
+  def run(trainingData: RDD[Set[String]], k: Int = 10, maxIterations: Int = 50)
          (implicit sparkContext: SparkContext): (ClusteringResults, SetKMeansModel) = {
     var centroids = 
       trainingData.takeSample(false, k, System.currentTimeMillis.toInt)
@@ -28,7 +28,7 @@ object SetKMeans {
         sumOfSim += distance
       }
       centroids = newCentroids
-    } while(convergenceSim > sumOfSim)
+    } while(convergenceSim > sumOfSim && maxIterations > currentIteration)
 
     val results = new ClusteringResults(k = k,
                                         clusters = clusters,
