@@ -1,8 +1,19 @@
 import AssemblyKeys._
 import sbt._
 import Keys._
+import Package.ManifestAttributes
 
-mainClass := Some("main.Main")
+lazy val mainClassString = "main.Main"
+
+mainClass := Some(mainClassString)
+
+lazy val baseSettings = Defaults.defaultSettings ++ Seq(
+  packageOptions := Seq(ManifestAttributes(
+    ("Manifest-Version", "1.0"),
+    ("Main-Class", mainClassString))
+  )
+)
+
 
 libraryDependencies ++= Seq(
 	("org.apache.spark" %% "spark-core" % "latest.integration" % "provided").
