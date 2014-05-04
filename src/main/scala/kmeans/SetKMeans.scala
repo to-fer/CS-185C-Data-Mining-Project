@@ -143,7 +143,7 @@ object SetKMeans {
    * @return the set-average of the cluster
    */
   private def average(cluster: RDD[Set[String]],
-                      averageThreshold: Double = 0.30): Set[String] = {
+                      averageThreshold: Double = 0.15): Set[String] = {
     val clusterSetElements = cluster flatMap (set => set)
 
     val clusterSetElementCounts = clusterSetElements.map((_, 1))
