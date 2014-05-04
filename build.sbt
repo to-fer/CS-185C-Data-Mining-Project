@@ -7,7 +7,7 @@ libraryDependencies ++= Seq(
     exclude("commons-collections", "commons-collections").
     exclude("commons-collections", "commons-collections").
     exclude("com.esotericsoftware.minlog", "minlog"),
-  ("org.apache.hadoop" % "hadoop-client" % "1.0.3")
+  ("org.apache.hadoop" % "hadoop-client" % "1.0.3" % "provided")
 )
 
 assemblySettings
