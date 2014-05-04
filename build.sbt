@@ -1,4 +1,8 @@
 import AssemblyKeys._
+import sbt._
+import Keys._
+
+mainClass := Some("main.Main")
 
 libraryDependencies ++= Seq(
 	("org.apache.spark" %% "spark-core" % "latest.integration" % "provided").
