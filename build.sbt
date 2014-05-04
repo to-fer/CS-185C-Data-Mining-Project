@@ -1,6 +1,9 @@
+import AssemblyKeys._
 import sbt._
 import Keys._
 import Package.ManifestAttributes
+
+assemblySettings
 
 lazy val mainClassString = "main.Main"
 
