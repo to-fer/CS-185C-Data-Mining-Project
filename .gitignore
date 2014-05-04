@@ -7,3 +7,7 @@ target/
 
 # File that clustering results are written to.
 *clustering-results*
+
+*.eml
+*.userlibraries
+*transformed*
