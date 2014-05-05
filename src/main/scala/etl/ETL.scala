@@ -1,12 +1,14 @@
+package etl
+
 import java.nio.file.{Paths, Files}
 import org.apache.spark.SparkContext
 
 object ETL extends App {
-  val rawDatasetPath = "1-4-triplets.csv"
+  val rawDatasetPath = args(2)
   if (Files.exists(Paths.get(rawDatasetPath))) {
-    val sparkHome = "/home/dash/prog/lang/scala/spark"
+    val sparkHome = args(0)
     val appName = "ETL"
-    val masterURL = "local[4]"
+    val masterURL = args(1)
     val context = new SparkContext(masterURL, appName, sparkHome)
 
     // For transformation from song ID to song name. File available at
@@ -42,7 +44,7 @@ object ETL extends App {
     val userSongGrouping = triplets.groupBy(_.userId)
     val userSongSets = userSongGrouping map {
       case (userId, userIdRowArray) =>
-        userIdRowArray.map(_.songName).toSet
+        userIdRowArray.map(r => (r.songName, r.playCount)).toSet
     }
 
     // Write transformed data to a file.
