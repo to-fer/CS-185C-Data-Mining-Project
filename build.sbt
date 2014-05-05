@@ -18,7 +18,7 @@ lazy val baseSettings = Defaults.defaultSettings ++ Seq(
 
 
 libraryDependencies ++= Seq(
-	("org.apache.spark" %% "spark-core" % "0.9.1" % "provided").
+	("org.apache.spark" %% "spark-core" % "0.9.1").
     exclude("org.mortbay.jetty", "servlet-api").
     exclude("commons-beanutils", "commons-beanutils-core").
     exclude("commons-collections", "commons-collections").
