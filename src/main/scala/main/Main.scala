@@ -13,10 +13,11 @@ object Main extends App {
     val conf = new SparkConf()
                .setSparkHome(args(0))
                .setMaster(args(1))
+               .setAppName("Song Set K-Means")
+               .setJars(List("kmeans.jar"))
                .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
                .set("spark.kryo.registrator", "serialization.Registrator")
                .set("spark.kryoserializer.buffer.mb", "10")
-               .setAppName("Song Set K-Means")
                .set("spark.executor.memory", "2g")
                .set("spark.cores.max", "4")
 
