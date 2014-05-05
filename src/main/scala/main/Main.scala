@@ -12,9 +12,10 @@ object Main extends App {
     val conf = new SparkConf()
                .setSparkHome(args(0))
                .setMaster(args(1))
-               .setJars(List("cs-185c-data-mining-project.jar"))
+               .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+               .set("spark.kryo.registrator", "serialization.Registrator")
                .setAppName("Song Set K-Means")
-               .set("spark.executor.memory", "5g")
+               .set("spark.executor.memory", "2g")
                .set("spark.cores.max", "4")
 
     implicit val context = new SparkContext(conf)
