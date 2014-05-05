@@ -18,8 +18,7 @@ object Main extends App {
                .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
                .set("spark.kryo.registrator", "serialization.Registrator")
                .set("spark.kryoserializer.buffer.mb", "10")
-               .set("spark.executor.memory", "2g")
-               .set("spark.cores.max", "4")
+               .set("spark.executor.memory", "6g")
 
     implicit val context = new SparkContext(conf)
 
