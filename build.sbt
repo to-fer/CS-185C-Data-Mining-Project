@@ -5,9 +5,13 @@ import Package.ManifestAttributes
 
 assemblySettings
 
-lazy val mainClassString = "main.Main"
+lazy val mainClassName = "Main"
+
+lazy val mainClassString = s"main.$mainClassName"
 
 mainClass := Some(mainClassString)
+
+jarName in assembly := s"$mainClassName.jar"
 
 lazy val baseSettings = Defaults.defaultSettings ++ Seq(
   packageOptions := Seq(ManifestAttributes(
