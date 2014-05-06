@@ -7,11 +7,11 @@ import SparkContext._
 object SetKMeans {
   // TODO add convergence detection
   // WARNING: SetKMeansModel is returned, but is a class that has yet to be implemented. Do not use.
-  def run(trainingData: RDD[Set[String]], k: Int = 10, maxIterations: Int = 50)
+  def run(trainingData: RDD[Map[String, Double]], k: Int = 10, maxIterations: Int = 50)
          (implicit sparkContext: SparkContext): (ClusteringResults, SetKMeansModel) = {
     var centroids = 
       trainingData.takeSample(false, k, System.currentTimeMillis.toInt)
-    var clusters = Map.empty[Int, RDD[Set[String]]]
+    var clusters = Map.empty[Int, RDD[Map[String, Double]]]
 
     val convergenceSim = k
     var currentIteration = 0
@@ -27,6 +27,7 @@ object SetKMeans {
         val distance = similarity(centroids(i), newCentroids(i))
         sumOfSim += distance
       }
+
       centroids = newCentroids
     } while(convergenceSim > sumOfSim && maxIterations > currentIteration)
 
@@ -38,10 +39,25 @@ object SetKMeans {
     (results, new SetKMeansModel)
   }
 
-  private def similarity(setA: Set[String], setB: Set[String]) = {
-    val numOfCommonElements = setA.intersect(setB).size
-    val numOfTotalElements = setA.union(setB).size
-    numOfCommonElements/numOfTotalElements.toDouble
+  private def similarity(mapA: Map[String, Double], mapB: Map[String, Double]): Double = {
+    val setA = mapA.keys.toSet
+    val setB = mapB.keys.toSet
+
+    val intersection = setA.intersect(setB)
+    val union = setA.union(setB)
+    val jaccardIndex = intersection.size/union.size.toDouble
+
+    val playcountSimilarity =
+      if (!intersection.isEmpty)
+        (intersection.map(songName => {
+          val songCountA = mapA(songName)
+          val songCountB = mapB(songName)
+          if (songCountA > songCountB) songCountB/songCountA.toDouble
+          else songCountA/songCountB.toDouble
+        }).sum)/intersection.size
+      else 0.0
+
+    jaccardIndex * playcountSimilarity
   }
 
   /**
@@ -52,8 +68,7 @@ object SetKMeans {
    * @param centroids the cluster centroids
    * @return the centroid that dataPoint is closest to.
    */
-  private def closestCentroid
-  (dataPoint: Set[String], centroids: Seq[Set[String]]): Option[Int] = {
+  private def closestCentroid(dataPoint: Map[String, Double], centroids: Seq[Map[String, Double]]): Option[Int] = {
     val similarities = centroids.zipWithIndex map {
       case (centroid, index) => (similarity(dataPoint, centroid), index)
     }
@@ -78,8 +93,8 @@ object SetKMeans {
    * @return a mapping from centroid index to that centroid's clustered data
    */
   // TODO always makes 2 large clusters and 2 small ones when k = 4. Bug, or consequence of a small K?
-  private def clusterData(data: RDD[Set[String]], centroids: Seq[Set[String]])
-                         (implicit sparkContext: SparkContext): Map[Int, RDD[Set[String]]] = {
+  private def clusterData(data: RDD[Map[String, Double]], centroids: Seq[Map[String, Double]])
+                         (implicit sparkContext: SparkContext): Map[Int, RDD[Map[String, Double]]] = {
     val centroidIndexToDataPoint = data.keyBy(
       closestCentroid(_, centroids)
     ).filter {
@@ -106,7 +121,7 @@ object SetKMeans {
     for (i <- 0 until centroids.length)
       if (!clusters.contains(i))
         clusters =
-          clusters + (i -> sparkContext.makeRDD(List.empty[Set[String]]))
+          clusters + (i -> sparkContext.makeRDD(List.empty[Map[String, Double]]))
     clusters
   }
 
@@ -116,46 +131,68 @@ object SetKMeans {
    * @param clusters the clusters to find the new centroids of
    * @return the new centroids of the clusters
    */
-  private def findNewCentroids(clusters: Map[Int, RDD[Set[String]]],
-                               k: Int): Array[Set[String]] = {
-    val newCentroids = new Array[Set[String]](k)
+  private def findNewCentroids(clusters: Map[Int, RDD[Map[String, Double]]],
+                               k: Int): Array[Map[String, Double]] = {
+    val newCentroids = new Array[Map[String, Double]](k)
     clusters foreach { case (clusterNumber, cluster) => {
       val newCentroid =
       if (cluster.count != 0 )
         average(cluster)
       else
-        Set.empty[String]
+        Map.empty[String, Double]
       newCentroids(clusterNumber) = newCentroid
     } }
     newCentroids
   }
 
   /**
-   * Calculates the average of a collection of sets. This set-average is defined as the set consisting of
-   * the most common elements among all of the given sets. We find these elements by finding the most
-   * common element among all the sets, then defining a count requirement for the other elements among
-   * all the sets. The number of occurrences of an element must be equal to or greater than this count
-   * requirement in order to be included in the average set.
+   * Calculates the average data point in the cluster by considering both the occurrence count of a song in
+   * the cluster as well as its average play count. Uses factors between 0 and 1 to determine occurrence count
+   * and play count average requirements that all cluster elements must meet in order to be included in the
+   * average.
    *
-   * @param cluster the cluster to find the average of
-   * @param averageThreshold the percentage of the number of occurrences of the most common set to
-   *                         use as the count requirement.
-   * @return the set-average of the cluster
+   * @param cluster the cluster to find the average element of
+   * @param averageFactor the factor to multiply the most common occurrence count by to get a lower
+   *                      bound on the occurrence count of every element to be included in the average.
+   * @param playcountFactor the factor to multiply the greatest play count average by to get a lower bound
+   *                        on the play count average of every element to be included in the average
+   * @return a mapping from song name to (average) play count of all of the most common and well-liked
+   *         songs in this cluster.
    */
-  private def average(cluster: RDD[Set[String]],
-                      averageThreshold: Double = 0.3): Set[String] = {
-    val clusterSetElements = cluster flatMap (set => set)
+  private def average(cluster: RDD[Map[String, Double]],
+                      averageFactor: Double = 0.3,
+                      playcountFactor: Double = 0.5): Map[String, Double] = {
 
-    val clusterSetElementCounts = clusterSetElements.map((_, 1))
-                                                    .reduceByKey(_ + _)
-    val mostCommonElementCount = clusterSetElementCounts.fold(clusterSetElementCounts.first)(
-      (mostCommonSong, song) => if (song._2 > mostCommonSong._2) song else mostCommonSong
-    )._2
-    val countRequirement = mostCommonElementCount * averageThreshold
-    val averageElements = clusterSetElementCounts.collect {
-      case (song, occurrenceCount)
-        if (occurrenceCount >= countRequirement) => song
+    val groupedBySongName = cluster.flatMap(map => map).groupBy {
+      case (songName, playCount) => songName
     }
-    averageElements.toArray.toSet
+    val counts = groupedBySongName.map {
+      case (songName, playCountList) => {
+        val playCountSum = playCountList.map(_._2).sum
+        val occurrenceCount = playCountList.size
+        val playCountAverage = playCountSum/occurrenceCount.toDouble
+        (songName, occurrenceCount, playCountAverage)
+      }
+    }
+    val mostCommonSongCount = counts.fold(counts.first)(
+      (mostCommon, visited) => if (visited._2 > mostCommon._2) visited else mostCommon
+    )._2
+    val occurrenceCountRequirement = mostCommonSongCount * averageFactor
+    val commonSongs = counts.filter {
+      case (_, occurrenceCount, _) => occurrenceCount >= occurrenceCountRequirement
+    }
+
+    val mostLikedSongPlayCountAverage = commonSongs.fold(commonSongs.first())(
+      (mostLiked, visited) => if (visited._3 > mostLiked._3) visited else mostLiked
+    )._3
+    val likeRequirement = mostLikedSongPlayCountAverage * playcountFactor
+    val likedCommonSongs = commonSongs.filter {
+      case (_, _, playCountAverage) => playCountAverage >= likeRequirement
+    }
+
+    val averageClusterElements = likedCommonSongs.map {
+      case (songName, _, playCountAverage) => (songName, playCountAverage)
+    }
+    averageClusterElements.toArray.toMap
   }
 }
