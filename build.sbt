@@ -5,9 +5,13 @@ import Package.ManifestAttributes
 
 assemblySettings
 
-lazy val mainClassString = "main.Main"
+lazy val mainClassName = "ETL"
+
+lazy val mainClassString = s"etl.$mainClassName"
 
 mainClass := Some(mainClassString)
+
+jarName in assembly := s"$mainClassName.jar"
 
 lazy val baseSettings = Defaults.defaultSettings ++ Seq(
   packageOptions := Seq(ManifestAttributes(
@@ -15,7 +19,6 @@ lazy val baseSettings = Defaults.defaultSettings ++ Seq(
     ("Main-Class", mainClassString))
   )
 )
-
 
 libraryDependencies ++= Seq(
 	("org.apache.spark" %% "spark-core" % "0.9.1").

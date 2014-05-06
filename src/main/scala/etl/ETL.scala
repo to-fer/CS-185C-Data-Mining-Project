@@ -5,7 +5,7 @@ import org.apache.spark.{SparkConf, SparkContext}
 
 object ETL extends App {
 
-  if (args.length == 3) {
+  if (args.length == 4) {
     val rawDatasetPath = args(2)
     if (Files.exists(Paths.get(rawDatasetPath))) {
       val sparkConf = new SparkConf()
@@ -48,7 +48,9 @@ object ETL extends App {
             songId
         new Row(splitLine(0), songName, splitLine(2).toInt)
       })
-      val userSongGrouping = triplets.groupBy(_.userId)
+      val playCountFilter = args(3).toInt
+      val cleanTriplets = triplets.filter(_.playCount >= playCountFilter)
+      val userSongGrouping = cleanTriplets.groupBy(_.userId)
       val userSongSets = userSongGrouping map {
         case (userId, userIdRowArray) =>
           userIdRowArray.map(r => (r.songName, r.playCount)).toSet

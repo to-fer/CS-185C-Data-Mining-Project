@@ -182,6 +182,7 @@ object SetKMeans {
       case (_, occurrenceCount, _) => occurrenceCount >= occurrenceCountRequirement
     }
 
+    /*
     val mostLikedSongPlayCountAverage = commonSongs.fold(commonSongs.first())(
       (mostLiked, visited) => if (visited._3 > mostLiked._3) visited else mostLiked
     )._3
@@ -189,8 +190,10 @@ object SetKMeans {
     val likedCommonSongs = commonSongs.filter {
       case (_, _, playCountAverage) => playCountAverage >= likeRequirement
     }
-
-    val averageClusterElements = likedCommonSongs.map {
+    // Replace line below with likedCommonSongs.map instead of using commonSongs.map if you
+    // want to use play count consideration when calculating the average here.
+    */
+    val averageClusterElements = commonSongs.map {
       case (songName, _, playCountAverage) => (songName, playCountAverage)
     }
     averageClusterElements.toArray.toMap
