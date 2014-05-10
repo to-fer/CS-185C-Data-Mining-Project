@@ -6,7 +6,7 @@ import kmeans.SetKMeans
 import java.nio.file.{Paths, Files}
 import org.apache.spark.storage.StorageLevel
 
-object Main extends App {
+object KMeansDriver extends App {
 
   if (args.length == 3) {
     // Spark initialization
