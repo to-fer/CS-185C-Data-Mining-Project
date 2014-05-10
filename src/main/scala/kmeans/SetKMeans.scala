@@ -8,7 +8,7 @@ object SetKMeans {
   // TODO add convergence detection
   // WARNING: SetKMeansModel is returned, but is a class that has yet to be implemented. Do not use.
   def run(trainingData: RDD[Set[String]], k: Int = 10, maxIterations: Int = 50)
-         (implicit sparkContext: SparkContext): (ClusteringResults, SetKMeansModel) = {
+         (implicit sparkContext: SparkContext): ClusteringResults = {
     var centroids = 
       trainingData.takeSample(false, k, System.currentTimeMillis.toInt)
     var clusters = Map.empty[Int, RDD[Set[String]]]
@@ -35,7 +35,7 @@ object SetKMeans {
                                         centroids = centroids,
                                         iterations = currentIteration,
                                         dataCount = trainingData.count().toInt)
-    (results, new SetKMeansModel)
+    results
   }
 
   private def similarity(setA: Set[String], setB: Set[String]) = {
@@ -143,7 +143,7 @@ object SetKMeans {
    * @return the set-average of the cluster
    */
   private def average(cluster: RDD[Set[String]],
-                      averageThreshold: Double = 0.3): Set[String] = {
+                      averageThreshold: Double = 0.4): Set[String] = {
     val clusterSetElements = cluster flatMap (set => set)
 
     val clusterSetElementCounts = clusterSetElements.map((_, 1))
