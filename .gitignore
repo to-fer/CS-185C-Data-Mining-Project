@@ -14,4 +14,8 @@ target/
 
 *META-INF*
 
-unique_tracks.txt
+# Ignore project data sets
+sid_mismatches.txt
+random-sample
+translation-dataset
+triplets.csv
