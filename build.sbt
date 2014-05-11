@@ -5,7 +5,7 @@ import Package.ManifestAttributes
 
 assemblySettings
 
-lazy val mainClassName = "Main"
+lazy val mainClassName = "KMeansDriver"
 
 lazy val mainClassString = s"main.$mainClassName"
 
