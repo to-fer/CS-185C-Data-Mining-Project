@@ -11,9 +11,32 @@ object ETL extends App {
     val masterURL = args(1)
     val context = new SparkContext(masterURL, appName, sparkHome)
 
-    // For transformation from song ID to song name. File available at
+    /* Transform! */
+    val dataset = context.textFile(rawDatasetPath)
+
+    // Case class, just for readability's sake
+    case class MaybeBadRow(userId: String, songID: String)
+    case class GoodRow(userId: String, songName: String)
+    val doubles = dataset.map(line => {
+      val splitLine = line.split(",")
+      val songID = splitLine(1)
+      new MaybeBadRow(splitLine(0), songID)
+    })
+
+    // For ignoring song IDs that were mismatched
+    val errorDataset = context.textFile("sid_mismatches.txt")
+    val erroneousSongIDs = errorDataset.map(line => {
+      val indOfLt = line.indexOf("<")
+      val indOfSpace = line.indexOf(" ", indOfLt)
+      val songId = line.substring(indOfLt + 1, indOfSpace)
+      songId
+    }).toArray.toSet
+
+    val correctDoubles = doubles.filter(row => !erroneousSongIDs.contains(row.songID))
+
+    // For transformation of song ID to song name. File available at
     // http://labrosa.ee.columbia.edu/millionsong/pages/getting-dataset at "1." under "Additional Files".
-    val translationDataset = context.textFile("unique_tracks.txt")
+    val translationDataset = context.textFile("translation-dataset")
     val separator = "<SEP>"
     val translationDatasetSplitLines =
       translationDataset.map(_.split(separator))
@@ -25,31 +48,23 @@ object ETL extends App {
       }
     }.toArray.toMap
 
-
-    /* Transform! */
-    val dataset = context.textFile(rawDatasetPath)
-
-    // Case class, just for readability's sake
-    case class Row(userId: String, songName: String, playCount: Int)
-    val triplets = dataset.map(line => {
-      val splitLine = line.split(",")
-      val songId = splitLine(1)
+    val songNameDoubles = correctDoubles.map(row => {
       val songName =
-        if (songIdToSongName.contains(songId))
-          songIdToSongName(songId)
+        if (songIdToSongName.contains(row.songID))
+          songIdToSongName(row.songID)
         else
-          songId
-      new Row(splitLine(0), songName, splitLine(2).toInt)
+          row.songID
+      new GoodRow(row.userId, songName)
     })
-    val userSongGrouping = triplets.groupBy(_.userId)
+    val userSongGrouping = songNameDoubles.groupBy(_.userId)
     val userSongSets = userSongGrouping map {
       case (userId, userIdRowArray) =>
-        userIdRowArray.map(r => (r.songName, r.playCount)).toSet
+        userIdRowArray.map(r => r.songName).toSet
     }
 
     // Write transformed data to a file.
     val fileContents = userSongSets.map(_.mkString(separator))
-    val transformedDataFile = "taste-profile-subset-transformed"
+    val transformedDataFile = "transformed"
     fileContents.saveAsTextFile(transformedDataFile)
 
     context.stop()
