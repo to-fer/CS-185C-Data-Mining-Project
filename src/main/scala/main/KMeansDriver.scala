@@ -5,31 +5,15 @@ import org.apache.spark.{SparkConf, SparkContext}
 import kmeans.SetKMeans
 import java.nio.file.{Paths, Files}
 import org.apache.spark.storage.StorageLevel
+import util.{DatasetUtil, SparkContextUtil}
 
 object KMeansDriver extends App {
 
-  if (args.length == 3) {
-    // Spark initialization
-    val conf = new SparkConf()
-               .setSparkHome(args(0))
-               .setMaster(args(1))
-               .setAppName("Song Set K-Means")
-               .setJars(List("kmeans.jar"))
-               .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-               .set("spark.kryo.registrator", "serialization.Registrator")
-               .set("spark.kryoserializer.buffer.mb", "10")
-
-    implicit val context = new SparkContext(conf)
-
-    val transformedDataFile = args(2)
+  def run(datasetPath: String, fractionTrainingData: Double = 0.1)(implicit context: SparkContext) = {
     val songSeparator = "<SEP>"
-    // Cached because K-Means is an iterative algorithm
-    val trainingData = context.textFile(transformedDataFile).map(_.split(songSeparator).toSet).persist(StorageLevel.MEMORY_ONLY_SER)
+    val trainingData = DatasetUtil.trainingData(datasetPath, fractionTrainingData, songSeparator)
 
-    val (kMeansResults, _) = SetKMeans.run (
-      trainingData = trainingData,
-      k = 10
-    )
+    val kMeansResults = SetKMeans.run (trainingData = trainingData, k = 25)
 
     val resultsFile = Paths.get("clustering-results")
     if (!Files.exists(resultsFile))
@@ -38,6 +22,11 @@ object KMeansDriver extends App {
 
     context.stop()
     System.exit(0) // Make sure everything stops
+  }
+
+  if (args.length == 3) {
+    implicit val context = SparkContextUtil.newSparkContext(args(0), args(1))
+    run(datasetPath = args(2), 0.05)
   }
   else
     println("You must enter the path to a spark installation, master URL, and transformed dataset!")
