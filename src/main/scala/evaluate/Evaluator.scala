@@ -4,7 +4,6 @@ import util.{DatasetUtil, SparkContextUtil}
 import org.apache.spark.SparkContext
 import kmeans.SetKMeans
 import java.nio.file.{Files, Paths}
-import scala.util.Random
 
 object Evaluator extends App {
 
@@ -13,36 +12,58 @@ object Evaluator extends App {
     val trainingRDD = DatasetUtil.trainingData(datasetPath, 1.0, songSeparator)
     val results = SetKMeans.run(trainingRDD, k)
 
-    val sampleSize = 5
-    val representativeDataPoints = results.clusters.map {
+    val artistDataset = context.textFile("translation-dataset").map(_.split(songSeparator))
+    val songToArtist = artistDataset.collect {
+      // There are some errors in the dataset that result in not every row having the number of
+      // attributes that it should.
+      case line: Array[String] if line.length == 4 => {
+        val artistName = line(2)
+        val songName = line(3)
+        (songName -> artistName)
+      }
+    }.toArray.toMap
+
+    val artistClusters = results.clusters.map {
       case (clusterIndex, cluster) => {
-        val sample = cluster.takeSample(false, sampleSize, System.currentTimeMillis.toInt)
-        val songSamples = sample.map(sampleSet => {
-          val setSize = sampleSet.size
-          val sampleArray = sampleSet.toArray
-          if (setSize < sampleSize)
-            sampleSet.toArray
-          else {
-            var sampledSongsArray = Array.empty[String]
-            while (sampledSongsArray.size < sampleSize) {
-              val randInd = Random.nextInt(setSize)
-              val randomSong = sampleArray(randInd)
-              if (!sampledSongsArray.contains(randomSong))
-                sampledSongsArray = sampledSongsArray ++ Array(randomSong)
-            }
-            sampledSongsArray
-          }
+        val artistCluster = cluster.map(songSet => {
+          val artistList = songSet.map(songToArtist)
+          artistList.toSet
         })
-        (clusterIndex, songSamples)
+        (clusterIndex -> artistCluster)
       }
     }
 
-    val outputString = representativeDataPoints.map {
-      case (clusterIndex, clusterSample) => {
-        val sampleString = clusterSample.map(_.mkString(",")).mkString("\n")
-        s"$clusterIndex:\n$sampleString"
+    val artistClusterCentroids = artistClusters.map {
+      case (clusterIndex, cluster) => {
+        val clusterArtistNames = cluster.flatMap(artistSet => artistSet).toArray.toSet
+        (clusterIndex, clusterArtistNames)
       }
-    }.mkString("\n\n")
+    }
+
+    val artistData = context.makeRDD(artistClusters.flatMap {
+      case (clusterIndex, cluster) => {
+        cluster.map((_, clusterIndex)).toArray
+      }
+    }.toArray)
+
+    val errorCount = artistData.filter { case (artistSet, oldCentroidIndex) => {
+      val centroidSimilarities = artistClusterCentroids.map {
+        case (centroidIndex, centroid) => {
+          (SetKMeans.similarity(centroid, artistSet), centroidIndex)
+        }
+      }
+      val mostSimilarCentroid = (centroidSimilarities.maxBy {
+        case (similarity, centroidIndex) => similarity
+      })._2
+
+      mostSimilarCentroid == oldCentroidIndex
+    }}.count
+
+    val correct = results.dataCount - errorCount
+    val accuracy = correct/results.dataCount.toDouble
+    val accuracyPercentage = accuracy * 100
+
+    val outputString = "%2.2f" format accuracyPercentage
     val outputPath = Paths.get(evalOutputPath)
     Files.deleteIfExists(outputPath)
     Files.write(outputPath, outputString.getBytes)
