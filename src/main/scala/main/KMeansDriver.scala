@@ -9,11 +9,11 @@ import util.{DatasetUtil, SparkContextUtil}
 
 object KMeansDriver extends App {
 
-  def run(datasetPath: String, fractionTrainingData: Double = 0.1)(implicit context: SparkContext) = {
+  def run(datasetPath: String, fractionTrainingData: Double = 0.1, k: Int = 10)(implicit context: SparkContext) = {
     val songSeparator = "<SEP>"
     val trainingData = DatasetUtil.trainingData(datasetPath, fractionTrainingData, songSeparator)
 
-    val kMeansResults = SetKMeans.run (trainingData = trainingData, k = 25)
+    val kMeansResults = SetKMeans.run (trainingData = trainingData, k)
 
     val resultsFile = Paths.get("clustering-results")
     if (!Files.exists(resultsFile))
@@ -26,7 +26,7 @@ object KMeansDriver extends App {
 
   if (args.length == 3) {
     implicit val context = SparkContextUtil.newSparkContext(args(0), args(1))
-    run(datasetPath = args(2), 0.05)
+    run(datasetPath = args(2), 1, args(3).toInt)
   }
   else
     println("You must enter the path to a spark installation, master URL, and transformed dataset!")
