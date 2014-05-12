@@ -12,7 +12,7 @@ object KMeansDriver extends App {
     val songSeparator = "<SEP>"
     val trainingData = DatasetUtil.trainingData(datasetPath, fractionTrainingData, songSeparator)
 
-    val kMeansResults = SetKMeans.run(trainingData = trainingData, k)
+    val kMeansResults = SetKMeans.run(trainingData = trainingData, k = k)
 
     val resultsFile = Paths.get("clustering-results")
     if (!Files.exists(resultsFile))
