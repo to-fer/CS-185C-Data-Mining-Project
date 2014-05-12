@@ -38,7 +38,7 @@ object SetKMeans {
     results
   }
 
-  private def similarity(setA: Set[String], setB: Set[String]) = {
+  def similarity(setA: Set[String], setB: Set[String]) = {
     val numOfCommonElements = setA.intersect(setB).size
     val numOfTotalElements = setA.union(setB).size
     numOfCommonElements/numOfTotalElements.toDouble
