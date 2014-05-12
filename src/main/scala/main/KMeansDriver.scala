@@ -8,12 +8,11 @@ import org.apache.spark.storage.StorageLevel
 import util.{DatasetUtil, SparkContextUtil}
 
 object KMeansDriver extends App {
-
   def run(datasetPath: String, fractionTrainingData: Double = 0.1, k: Int = 10)(implicit context: SparkContext) = {
     val songSeparator = "<SEP>"
     val trainingData = DatasetUtil.trainingData(datasetPath, fractionTrainingData, songSeparator)
 
-    val kMeansResults = SetKMeans.run (trainingData = trainingData, k)
+    val kMeansResults = SetKMeans.run(trainingData = trainingData, k)
 
     val resultsFile = Paths.get("clustering-results")
     if (!Files.exists(resultsFile))
