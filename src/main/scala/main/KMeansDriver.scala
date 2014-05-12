@@ -23,7 +23,7 @@ object KMeansDriver extends App {
     System.exit(0) // Make sure everything stops
   }
 
-  if (args.length == 3) {
+  if (args.length == 4) {
     implicit val context = SparkContextUtil.newSparkContext(args(0), args(1))
     run(datasetPath = args(2), 1, args(3).toInt)
   }
