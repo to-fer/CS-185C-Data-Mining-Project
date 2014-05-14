@@ -7,8 +7,8 @@ import SparkContext._
 object SetKMeans {
   def run(trainingData: RDD[Set[String]], k: Int = 10, maxIterations: Int = 50)
          (implicit sparkContext: SparkContext): ClusteringResults = {
-    var centroids = 
-      trainingData.takeSample(false, k, System.currentTimeMillis.toInt)
+
+    var centroids = trainingData.takeSample(false, k, System.currentTimeMillis.toInt)
     var clusters = Map.empty[Int, RDD[Set[String]]]
 
     val convergenceSim = k
