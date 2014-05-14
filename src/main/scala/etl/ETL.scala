@@ -3,6 +3,13 @@ package etl
 import java.nio.file.{Paths, Files}
 import org.apache.spark.SparkContext
 
+/**
+ * Performs ETL on The Echo Nest Taste Profile Subset, as described in
+ * http://sjsubigdata.wordpress.com/2014/02/08/nfl-anesidora/
+ *
+ * Usage:
+ *  [spark home directory] [master URL] [untransformed dataset path]
+ */
 object ETL extends App {
   val rawDatasetPath = args(2)
   if (Files.exists(Paths.get(rawDatasetPath))) {
