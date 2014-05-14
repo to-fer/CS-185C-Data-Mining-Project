@@ -1,10 +1,7 @@
-package main
+package kmeans
 
-import org.apache.spark.{SparkConf, SparkContext}
-
-import kmeans.SetKMeans
+import org.apache.spark.SparkContext
 import java.nio.file.{Paths, Files}
-import org.apache.spark.storage.StorageLevel
 import util.{DatasetUtil, SparkContextUtil}
 
 object KMeansDriver extends App {
