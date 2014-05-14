@@ -5,8 +5,6 @@ import org.apache.spark.SparkContext
 import SparkContext._
 
 object SetKMeans {
-  // TODO add convergence detection
-  // WARNING: SetKMeansModel is returned, but is a class that has yet to be implemented. Do not use.
   def run(trainingData: RDD[Set[String]], k: Int = 10, maxIterations: Int = 50)
          (implicit sparkContext: SparkContext): ClusteringResults = {
     var centroids = 
