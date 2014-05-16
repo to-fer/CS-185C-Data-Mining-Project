@@ -75,7 +75,6 @@ object SetKMeans {
    * @param centroids the centroids of each cluster
    * @return a mapping from centroid index to that centroid's clustered data
    */
-  // TODO always makes 2 large clusters and 2 small ones when k = 4. Bug, or consequence of a small K?
   private def clusterData(data: RDD[Set[String]], centroids: Seq[Set[String]])
                          (implicit sparkContext: SparkContext): Map[Int, RDD[Set[String]]] = {
     val centroidIndexToDataPoint = data.keyBy(
@@ -120,7 +119,7 @@ object SetKMeans {
     clusters foreach { case (clusterNumber, cluster) => {
       val newCentroid =
       if (cluster.count != 0 )
-        average(cluster)
+        average(cluster, 0.65)
       else
         Set.empty[String]
       newCentroids(clusterNumber) = newCentroid
